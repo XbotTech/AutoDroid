@@ -3,7 +3,6 @@ import time
 from string import Template
 from typing import List
 
-
 import yaml
 from appium import webdriver
 from appium.webdriver.common.appiumby import AppiumBy as By
@@ -14,6 +13,7 @@ from selenium.webdriver.support import expected_conditions as ec
 from appium.webdriver.webelement import WebElement
 from AutoDroid.common.handle_black import handle_black
 from AutoDroid.common.log import Logger
+from appium.options.common import AppiumOptions
 
 logger = Logger().get_logger()
 
@@ -23,13 +23,13 @@ class BasePage:
     def __init__(self, driver: WebDriver = None):
 
         if not driver:  # 如果没有传递driver
-            desire = {
-                "platformName": "Android",
-                "deviceName": "emulator-5554",
-                "appPackage": "com.xueqiu.android",
-                "appActivity": "view.WelcomeActivityAlias"
-            }
-            self.driver = webdriver.Remote('http://192.168.124.39:4723/wd/hub', desire)
+            option = AppiumOptions()
+            option.set_capability("platformName", "android")
+            option.set_capability("deviceName", "RFCY505MTLP")
+            option.set_capability("appPackage", "com.blink.blinkfocos")
+            option.set_capability("appActivity", ".SplashActivity")
+
+            self.driver = webdriver.Remote('http://192.168.124.39:4723/wd/hub', options=option)
             self.driver.implicitly_wait(10)
 
         else:
@@ -138,21 +138,84 @@ class BasePage:
             raise AttributeError(f"滑动方向错误，你滑动的方向是{direction}")
 
         self.driver.swipe(x1, y1, x2, y2, t)
+    def run_steps(self, yaml_path, page_function, **kwargs):
+        with open(yaml_path, mode="r", encoding="utf-8") as f:
+            res = yaml.safe_load(f)
+        steps = res[page_function]
+
+        # logger.info(f"传入的自定义参数是{kwargs}")
+
+        for k, v in kwargs.items():  # {"tel":'"13012312300"'}
+            if isinstance(v, str):
+                kwargs[k] = f"'{v}'"
 
 
+        for step in steps:
+            step = yaml.dump(step)
+
+            step = Template(step).substitute(kwargs)
+            step = yaml.safe_load(step)
+
+            sleep_time = step.get("sleep")
+            if sleep_time:
+                time.sleep(sleep_time)
+            action = step["action"]
+            index = step["index"]
+            locator = step["locator"]
+            text = step["text"]
+            try:
+                if action == "find_and_click":
+                    self.find_and_click(*locator)
+                    logger.info(f"调用了 find_and_click 方法, 定位方式是 {locator}")
+                    # return 不能随便写，一旦写了，函数执行结束，后续的循环 也直接结束了
+                    # find、finds需要return   其他都不需要
+                elif action == "find":
+                    ele = self.find(*locator)
+                    logger.info(f"调用了 find 方法, 定位方式是 {locator}")
+                    return ele
+                elif action == "finds":
+                    ele = self.finds(*locator)
+                    logger.info(f"调用了 finds 方法, 定位方式是 {locator}")
+                    return ele
+                elif action == "finds_and_click":
+                    self.finds_and_click(*locator, index)
+                    logger.info(f"调用了 finds_and_click 方法, 定位方式是 {locator},下标 {index}")
+                elif action == "find_and_send":
+                    self.find_and_send(*locator, text)
+                    logger.info(f"调用了 find_and_send 方法, 定位方式是 {locator},输入的文本 {text}")
+                elif action == "finds_and_send":
+                    self.finds_and_send(*locator, index, text)
+                    logger.info(f"调用了 finds_and_send 方法, 定位方式是 {locator},下标 {index},输入的文本 {text}")
+                elif action == "find_and_clear":
+                    self.find_and_clear(*locator)
+                    logger.info(f"调用了 find_and_clear 方法, 定位方式是 {locator}")
+                elif action == "finds_and_clear":
+                    self.finds_and_clear(*locator, index)
+                    logger.info(f"调用了 finds_and_clear 方法, 定位方式是 {locator},下标 {index}")
+
+                elif action == "swipe_lrdu":
+                    self.swipe_lrdu(*index)
+                    logger.info(f"调用了 swipe_lrdu 方法, 方向 {index[0]}  幅度{index[1]}")
+
+                else:
+                    raise AttributeError(f"你的元素定位交互方法 {action} 没有找到，再检查一下哦！")
+            except Exception as e:
+                logger.error(
+                    f"元素定位交互异常，执行的操作是{action},传入的参数 定位方式{locator}::下标{index}::文本{text}::等待时间{sleep_time}")
+                logger.error(f"报错信息是  {e}")
+                raise e
 
     @staticmethod
     def get_yaml_path(yaml_file_name):
         path = os.path.abspath(__file__)  # 获取base_page.py的绝对路径， 会随着项目位置的不同，自动变化
         py_page_path = os.path.dirname(path)  # 获取base_page.py所在的文件夹 py_page
         project_path = os.path.dirname(py_page_path)  # py_page所在的文件夹
-        yam_path = project_path + fr"\py_yaml\{yaml_file_name}"
-        # yam_path = os.path.join(project_path, "py_yaml", yaml_file_name)
-        return yam_path
+        yaml_path = os.path.join(project_path, "py_yaml", yaml_file_name)
+        return yaml_path
 
 
 if __name__ == '__main__':
-    pass
+    ...
     # basepage = BasePage()
     # p = BasePage.get_yaml_path("main_page.yaml")
     # basepage.run_steps(p, "agree",tel="13012312300.")
