@@ -13,7 +13,9 @@ def handle_black(fun):  # fun == find
     def run(*args, **kwargs):
         # args = (self, by, locator)
         # 黑名单列表
-        black_list = [(By.XPATH, "//*[@resource-id='com.xueqiu.android:id/image_cancel']")]
+        black_list = [(By.XPATH, "//android.widget.ImageView[@content-desc='Close']"),
+                      (By.ID, "com.android.permissioncontroller:id/permission_allow_foreground_only_button"),
+                      (By.ID, "com.android.permissioncontroller:id/permission_allow_button")]
         by_self = args[0]  # args->(self,by,locator)  args[0]->self
         try:
             # 如果找到对象就把对象返回
@@ -25,6 +27,7 @@ def handle_black(fun):  # fun == find
             for black in black_list:
                 logging.info(f"在黑名单中查找元素{black}")
                 eles = by_self.driver.find_elements(*black)  # find_elements返回的是一个列表
+
                 # 如果黑名单中的元素存在，就对该元素进行处理
                 if len(eles) > 0:
                     eles[0].click()
@@ -39,6 +42,8 @@ def handle_black(fun):  # fun == find
     return run
 
 
+if __name__ == '__main__':
+    ...
 # res1 = handle_black("func")
 # # res1 = run
 # res2 = res1("参数1", "参数2")

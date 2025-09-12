@@ -29,7 +29,7 @@ class BasePage:
             option.set_capability("appPackage", "com.blink.blinkfocos")
             option.set_capability("appActivity", ".SplashActivity")
 
-            self.driver = webdriver.Remote('http://192.168.124.39:4723/wd/hub', options=option)
+            self.driver = webdriver.Remote('http://127.0.0.1:4723/wd/hub', options=option)
             self.driver.implicitly_wait(10)
 
         else:
@@ -83,6 +83,27 @@ class BasePage:
     def finds_and_click(self, by, locator, index):
         self.finds(by, locator)[index].click()
 
+    # 有这个元素就点击，没有就跳过
+    def find_one_element_exist_click(self, by, locator):
+        ele = self.find(by, locator)
+        if ele.is_displayed():
+            ele.click()
+            logger.info(f"点击元素{locator}成功")
+        else:
+            logger.info(f"元素{locator}不存在,跳过.....")
+            pass
+
+    # 通过元素的一个属性去获取该元素的text，如果有这个元素就点击，没有就跳过
+    def get_current_auth_mode(self, by, locator, text):
+        element = self.find(by, locator)
+        current_text = element.text
+        if text in current_text:
+            element.click()
+            logger.info(f"点击元素{locator}成功")
+        else:
+            logger.info(f"元素{locator}不存在,跳过.....")
+            pass
+
     # 查找单个元素，输入文本
     @handle_black
     def find_and_send(self, by, locator, text):
@@ -102,6 +123,26 @@ class BasePage:
     @handle_black
     def finds_and_clear(self, by, locator, index):
         self.finds(by, locator)[index].clear()
+
+    # 获取元素文本
+    # @handle_black
+    # def find_and_get_text(self, by, locator):
+    #     return self.find(by, locator).text
+
+    # # 获取元素属性
+    # @handle_black
+    # def find_and_get_attribute(self, by, locator, attr_name):
+    #     return self.find(by, locator).get_attribute(attr_name)
+    #
+    # # 判断元素是否显示
+    # @handle_black
+    # def find_and_is_displayed(self, by, locator):
+    #     return self.find(by, locator).is_displayed()
+    #
+    # # 查找某个文本有没有显示
+    # @handle_black
+    # def find_and_is_displayed(self,  locator):
+    #     return self.find(locator).is_displayed()
 
     # 上下左右滑动
     def swipe_lrdu(self, direction, scale, t=300):  # 0.8
@@ -138,6 +179,29 @@ class BasePage:
             raise AttributeError(f"滑动方向错误，你滑动的方向是{direction}")
 
         self.driver.swipe(x1, y1, x2, y2, t)
+
+    # 隐私协议专用滑动
+    def scroll_privacy_agreement(self, times):
+        # 获取当前屏幕尺寸
+        window_size = self.driver.get_window_size()
+        screen_width = window_size['width']
+        screen_height = window_size['height']
+
+        # 计算比例
+        start_x_ratio = 0.47
+        start_y_ratio = 0.67
+        end_y_ratio = 0.33
+        times = int(times)
+        # 使用比例滑动（适配任意设备）
+        for _ in range(times):
+            new_start_x = screen_width * start_x_ratio
+            new_start_y = screen_height * start_y_ratio
+            new_end_y = screen_height * end_y_ratio
+
+            action = TouchAction(self.driver)
+            action.press(x=new_start_x, y=new_start_y).wait(500).move_to(x=new_start_x, y=new_end_y).release().perform()
+            time.sleep(0.5)
+
     def run_steps(self, yaml_path, page_function, **kwargs):
         with open(yaml_path, mode="r", encoding="utf-8") as f:
             res = yaml.safe_load(f)
@@ -148,7 +212,6 @@ class BasePage:
         for k, v in kwargs.items():  # {"tel":'"13012312300"'}
             if isinstance(v, str):
                 kwargs[k] = f"'{v}'"
-
 
         for step in steps:
             step = yaml.dump(step)
@@ -167,8 +230,6 @@ class BasePage:
                 if action == "find_and_click":
                     self.find_and_click(*locator)
                     logger.info(f"调用了 find_and_click 方法, 定位方式是 {locator}")
-                    # return 不能随便写，一旦写了，函数执行结束，后续的循环 也直接结束了
-                    # find、finds需要return   其他都不需要
                 elif action == "find":
                     ele = self.find(*locator)
                     logger.info(f"调用了 find 方法, 定位方式是 {locator}")
@@ -183,6 +244,12 @@ class BasePage:
                 elif action == "find_and_send":
                     self.find_and_send(*locator, text)
                     logger.info(f"调用了 find_and_send 方法, 定位方式是 {locator},输入的文本 {text}")
+                elif action == "find_one_element_exist_click":
+                    self.find_one_element_exist_click(*locator)
+                    logger.info(f"调用了 find_one_element_exist_click 方法, 定位方式是 {locator}")
+                elif action == "get_current_auth_mode":
+                    self.get_current_auth_mode(*locator, text)
+                    logger.info(f"调用了 find_one_element_exist_click 方法, 定位方式是 {locator},要获取的文本 {text}")
                 elif action == "finds_and_send":
                     self.finds_and_send(*locator, index, text)
                     logger.info(f"调用了 finds_and_send 方法, 定位方式是 {locator},下标 {index},输入的文本 {text}")
@@ -196,6 +263,10 @@ class BasePage:
                 elif action == "swipe_lrdu":
                     self.swipe_lrdu(*index)
                     logger.info(f"调用了 swipe_lrdu 方法, 方向 {index[0]}  幅度{index[1]}")
+                elif action == "scroll_privacy_agreement":
+                    self.scroll_privacy_agreement(index)
+                    logger.info(f"调用了 scroll_privacy_agreement 方法, 滑动了隐私协议")
+
 
                 else:
                     raise AttributeError(f"你的元素定位交互方法 {action} 没有找到，再检查一下哦！")
@@ -207,7 +278,7 @@ class BasePage:
 
     @staticmethod
     def get_yaml_path(yaml_file_name):
-        path = os.path.abspath(__file__)  # 获取base_page.py的绝对路径， 会随着项目位置的不同，自动变化
+        path = os.path.abspath(__file__)  # 获取base_page.py的绝对路径
         py_page_path = os.path.dirname(path)  # 获取base_page.py所在的文件夹 py_page
         project_path = os.path.dirname(py_page_path)  # py_page所在的文件夹
         yaml_path = os.path.join(project_path, "py_yaml", yaml_file_name)
