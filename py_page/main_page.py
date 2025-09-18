@@ -1,4 +1,4 @@
-from AutoDroid.py_page.base_page import BasePage
+from py_page.base_page import BasePage
 
 
 class MainPage(BasePage):
@@ -6,7 +6,7 @@ class MainPage(BasePage):
 
     def goto_my_page(self):
         self.run_steps(self.yaml_path, "goto_my_page")
-        from AutoDroid.py_page.my_page import MyPage
+        from py_page.my_page import MyPage
         return MyPage(self.driver)
 
     def agree(self):

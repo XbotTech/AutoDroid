@@ -8,11 +8,16 @@ from appium import webdriver
 from appium.webdriver.common.appiumby import AppiumBy as By
 from appium.webdriver.common.touch_action import TouchAction
 from appium.webdriver.webdriver import WebDriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.actions import interaction
+from selenium.webdriver.common.actions.action_builder import ActionBuilder
+from selenium.webdriver.common.actions.pointer_input import PointerInput
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from appium.webdriver.webelement import WebElement
-from AutoDroid.common.handle_black import handle_black
-from AutoDroid.common.log import Logger
+from common.handle_black import handle_black
+from common.log import Logger
 from appium.options.common import AppiumOptions
 
 logger = Logger().get_logger()
@@ -48,10 +53,13 @@ class BasePage:
             by_locator = (By.CLASS_NAME, locator)
         elif by == "xpath":
             by_locator = (By.XPATH, locator)
+        elif by == "uam":
+            by_locator = (By.ANDROID_UIAUTOMATOR, locator)
         else:
             raise AttributeError(f"元素定位方式未找到，你传入的是{by}")
         # ele = self.driver.find_elements(*by_locator)
-        ele = WebDriverWait(self.driver, 10).until(ec.visibility_of_element_located(by_locator), message="元素定位异常")
+        ele = WebDriverWait(self.driver, 10, poll_frequency=0.05).until(ec.visibility_of_element_located(by_locator),
+                                                                        message="元素定位异常")
         return ele
 
     # 查找多个元素
@@ -69,9 +77,37 @@ class BasePage:
         else:
             raise AttributeError(f"元素定位方式未找到，你传入的是{by}")
         # ele = self.driver.find_element(*by_locator)
-        ele_s = WebDriverWait(self.driver, 10).until(ec.visibility_of_all_elements_located(by_locator),
-                                                     message="元素定位异常")
+        ele_s = WebDriverWait(self.driver, 10).until(
+            ec.visibility_of_all_elements_located(by_locator),
+            message="元素定位异常")
         return ele_s
+
+    # 获取安卓系统toast专用方法
+    def get_toast_text(self, index):
+        """通用方法获取Toast消息"""
+        try:
+            # 等待Toast出现并获取文本
+            toast = WebDriverWait(self.driver, index, poll_frequency=0.05).until(
+                ec.presence_of_element_located((By.XPATH, "//android.widget.Toast")),
+                message="Toast未出现"
+            )
+            toast_text = (toast.get_attribute("text")).strip()
+            return toast_text
+        except TimeoutException:
+            return None
+
+            # 尝试所有可能的属性获取方式
+            # attributes_to_try = ['text', 'name', 'content-desc', 'label', 'value', 'hint']
+
+            # for attr in attributes_to_try:
+            #     try:
+            #         value = toast.get_attribute(attr)
+            #         print(f"toast.get_attribute('{attr}'): '{value}'")
+            #         if value and value.strip():  # 如果获取到非空文本
+            #             print(value.strip())
+            #             return value.strip()
+            #     except Exception as e:
+            #         print(f"获取属性 '{attr}' 时出错: {e}")
 
     # 查找单个元素，进行点击
     @handle_black
@@ -84,6 +120,7 @@ class BasePage:
         self.finds(by, locator)[index].click()
 
     # 有这个元素就点击，没有就跳过
+    @handle_black
     def find_one_element_exist_click(self, by, locator):
         ele = self.find(by, locator)
         if ele.is_displayed():
@@ -91,7 +128,7 @@ class BasePage:
             logger.info(f"点击元素{locator}成功")
         else:
             logger.info(f"元素{locator}不存在,跳过.....")
-            pass
+            ...
 
     # 通过元素的一个属性去获取该元素的text，如果有这个元素就点击，没有就跳过
     def get_current_auth_mode(self, by, locator, text):
@@ -198,9 +235,30 @@ class BasePage:
             new_start_y = screen_height * start_y_ratio
             new_end_y = screen_height * end_y_ratio
 
-            action = TouchAction(self.driver)
-            action.press(x=new_start_x, y=new_start_y).wait(500).move_to(x=new_start_x, y=new_end_y).release().perform()
-            time.sleep(0.5)
+            # action = TouchAction(self.driver)
+            # action.press(x=new_start_x, y=new_start_y).wait(500).move_to(x=new_start_x, y=new_end_y).release().perform()
+            # time.sleep(0.5)
+
+            # 使用W3C标准的触摸操作
+            actions = ActionChains(self.driver)
+            actions.w3c_actions = ActionBuilder(self.driver, mouse=PointerInput(interaction.POINTER_TOUCH, "touch"))
+
+            # 移动到起始位置并按下
+            actions.w3c_actions.pointer_action.move_to_location(new_start_x, new_start_y)
+            actions.w3c_actions.pointer_action.pointer_down()
+
+            actions.w3c_actions.pointer_action.pause(0.5)
+
+            # 移动到结束位置
+            actions.w3c_actions.pointer_action.move_to_location(new_start_x, new_end_y)
+
+            # 释放
+            actions.w3c_actions.pointer_action.pointer_up()
+
+            # 执行所有动作
+            actions.perform()
+
+            time.sleep(1)
 
     def run_steps(self, yaml_path, page_function, **kwargs):
         with open(yaml_path, mode="r", encoding="utf-8") as f:
@@ -222,6 +280,7 @@ class BasePage:
             sleep_time = step.get("sleep")
             if sleep_time:
                 time.sleep(sleep_time)
+                print(f'睡眠了{sleep_time}秒')
             action = step["action"]
             index = step["index"]
             locator = step["locator"]
@@ -238,6 +297,7 @@ class BasePage:
                     ele = self.finds(*locator)
                     logger.info(f"调用了 finds 方法, 定位方式是 {locator}")
                     return ele
+
                 elif action == "finds_and_click":
                     self.finds_and_click(*locator, index)
                     logger.info(f"调用了 finds_and_click 方法, 定位方式是 {locator},下标 {index}")
@@ -259,14 +319,16 @@ class BasePage:
                 elif action == "finds_and_clear":
                     self.finds_and_clear(*locator, index)
                     logger.info(f"调用了 finds_and_clear 方法, 定位方式是 {locator},下标 {index}")
-
                 elif action == "swipe_lrdu":
                     self.swipe_lrdu(*index)
                     logger.info(f"调用了 swipe_lrdu 方法, 方向 {index[0]}  幅度{index[1]}")
                 elif action == "scroll_privacy_agreement":
                     self.scroll_privacy_agreement(index)
                     logger.info(f"调用了 scroll_privacy_agreement 方法, 滑动了隐私协议")
-
+                elif action == "get_toast_text":
+                    result = self.get_toast_text(index)
+                    logger.info(f"调用了 get_toast_text 方法 ,获取到的文本是{result}")
+                    return result
 
                 else:
                     raise AttributeError(f"你的元素定位交互方法 {action} 没有找到，再检查一下哦！")

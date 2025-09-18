@@ -6,7 +6,13 @@ goto_login_page:
     sleep: 1
 get_user_name:
   - action: find
-    locator: [ XPATH, '//*[@content-desc="Edit Avatar"]/following-sibling::android.widget.TextView[1]']
+    locator: [ XPATH, '//*[@content-desc="Edit Avatar"]/following-sibling::android.widget.TextView[1]' ]
     text: ~
     index: ~
     sleep: 1
+my_page_toast_text:
+  - action: get_toast_text
+    locator: ~
+    text: ~
+    index: 5
+    sleep: ~

@@ -1,9 +1,9 @@
 import pytest
-from AutoDroid.py_page.base_page import BasePage
+from py_page.base_page import BasePage
 
 
 @pytest.fixture
 def get_driver():
-    diver = BasePage().driver
-    yield diver
-    diver.quit()
+    driver = BasePage().driver
+    yield driver
+    driver.quit()

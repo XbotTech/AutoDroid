@@ -2,7 +2,7 @@ agree:
   - action: scroll_privacy_agreement
     locator: ~
     text: ~
-    index: 5
+    index: 4
     sleep: ~
   - action: find_and_click
     locator: [ resource-id, 'com.blink.blinkfocos:id/privacy_confirm_btn' ]
