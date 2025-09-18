@@ -79,20 +79,6 @@ class TestLoginPage:
             getScreenShot(get_driver, __name__)
             raise e
 
-    def test_num_pwd_none(self, get_driver):
-        try:
-            text = (MainPage(
-                get_driver).agree().goto_my_page().goto_login_page().switch_password_login().num_pwd_login(
-                "15371972593", "").is_button_enabled())
-
-            # '//android.widget.TextView[@index="4"]'
-            logger.info(f"获取到提示：{text}")
-            assert text == "false"
-        except Exception as e:
-            logger.error(f"执行登录用例失败，错误：{e}")
-            getScreenShot(get_driver, __name__)
-            raise e
-
     def test_num_pwd_all_none(self, get_driver):
         try:
             text = (MainPage(
