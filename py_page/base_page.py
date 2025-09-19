@@ -89,8 +89,7 @@ class BasePage:
             # 等待Toast出现并获取文本
             toast = WebDriverWait(self.driver, index, poll_frequency=0.05).until(
                 ec.presence_of_element_located((By.XPATH, "//android.widget.Toast")),
-                message="Toast未出现"
-            )
+                message="Toast未出现")
             toast_text = (toast.get_attribute("text")).strip()
             return toast_text
         except TimeoutException:
