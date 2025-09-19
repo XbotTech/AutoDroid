@@ -2,11 +2,15 @@ from common.screen_shot import getScreenShot
 from py_page.main_page import MainPage
 from common.log import Logger
 from appium.webdriver.common.appiumby import AppiumBy
+import allure
 
 logger = Logger().get_logger()
 
 
+@allure.feature("登录模块")  # 整个类都属于这个Feature
 class TestLoginPage:
+    @allure.story("手机密码登录")
+    @allure.title("有效手机号和密码可以登录")
     def test_num_pwd_right(self, get_driver):
         try:
             name, text = (MainPage(
@@ -23,6 +27,8 @@ class TestLoginPage:
             getScreenShot(get_driver, __name__)
             raise e
 
+    @allure.story("手机密码登录")
+    @allure.title("有效手机号和错误密码登录")
     def test_num_pwd_wrong(self, get_driver):
         try:
             text = (MainPage(
@@ -37,6 +43,8 @@ class TestLoginPage:
             getScreenShot(get_driver, __name__)
             raise e
 
+    @allure.story("手机密码登录")
+    @allure.title("无效手机号和错误密码登录")
     def test_num_wrong_pwd(self, get_driver):
         try:
             text = (MainPage(
@@ -51,6 +59,8 @@ class TestLoginPage:
             getScreenShot(get_driver, __name__)
             raise e
 
+    @allure.story("手机密码登录")
+    @allure.title("手机号为空和错误密码登录")
     def test_num_none_pwd(self, get_driver):
         try:
             text = (MainPage(
@@ -65,6 +75,8 @@ class TestLoginPage:
             getScreenShot(get_driver, __name__)
             raise e
 
+    @allure.story("手机密码登录")
+    @allure.title("有效手机号为空和错误密码登录")
     def test_num_pwd_none(self, get_driver):
         try:
             text = (MainPage(
@@ -79,6 +91,8 @@ class TestLoginPage:
             getScreenShot(get_driver, __name__)
             raise e
 
+    @allure.story("手机密码登录")
+    @allure.title("手机号和密码均为空")
     def test_num_pwd_all_none(self, get_driver):
         try:
             text = (MainPage(
