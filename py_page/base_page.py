@@ -102,7 +102,7 @@ class BasePage:
             #     try:
             #         value = toast.get_attribute(attr)
             #         print(f"toast.get_attribute('{attr}'): '{value}'")
-            #         if value and value.strip():  # 如果获取到非空文本
+            #         if value and value.strip():  # 如果获取到非空
             #             print(value.strip())
             #             return value.strip()
             #     except Exception as e:
